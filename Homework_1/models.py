@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import random_split
 from torchvision import transforms
+from torchmetrics import Accuracy
 
 class ConvNet(LightningModule):
     
@@ -87,7 +88,7 @@ class ConvNet(LightningModule):
         out = self(x)
         loss = self.loss_fn(out, y)
         preds = torch.argmax(out, dim=1)
-        acc = accuracy(preds, y)
+        acc = Accuracy()(preds, y)
         self.log('val_loss', loss, on_step = True, on_epoch = True, prog_bar=True, logger = True)
         self.log('val_acc', acc, on_step = True, on_epoch = True, prog_bar=True, logger = True)
         # Save loss and acc
