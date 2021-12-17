@@ -1,11 +1,6 @@
-import torch
-from pytorch_lightning import LightningModule,LightningDataModule, Trainer
-from pytorch_lightning.metrics.functional import accuracy
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader, random_split
+from pytorch_lightning import LightningDataModule, Trainer
+from torch.utils.data import DataLoader, random_split
 from torchvision import transforms, datasets
-import torch.nn.functional as F
 
 class MNISTDataModule(LightningDataModule):
     def __init__(self, data_parameters):

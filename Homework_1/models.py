@@ -1,11 +1,9 @@
 import torch
-from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.metrics.functional import accuracy
+from pytorch_lightning import LightningModule
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader, random_split
-from torchvision import transforms, datasets
-import torch.nn.functional as F
+from torch.utils.data import random_split
+from torchvision import transforms
 
 class ConvNet(LightningModule):
     
