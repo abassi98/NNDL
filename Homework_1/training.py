@@ -15,7 +15,7 @@ def train_epoch(net, device, dataloader, loss_function, optimizer):
     optimzer = optimizer used
     --------
     Returns:
-    train_epoch_loss = list with all batch losses of the epoch
+    mean(train_epoch_loss) = average epoch loss
     """
     # Set the train mode
     net.train()
@@ -48,6 +48,19 @@ def train_epoch(net, device, dataloader, loss_function, optimizer):
 
 ### Test function
 def val_epoch(net,  device, dataloader, loss_function):
+    """
+    Validate an epoch of data
+    -----------
+    Parameters:
+    net = network
+    device = training device (cuda/cpu)
+    dataloader = dataloader of data
+    loss_function = loss function
+    optimzer = optimizer used
+    --------
+    Returns:
+    mean(val_epoch_loss) = average validation loss
+    """
     # Set evaluation mode
     net.eval()
     # List to save evaluation losses
@@ -63,12 +76,10 @@ def val_epoch(net,  device, dataloader, loss_function):
             y_hat = net(x_batch)
 
             # Compute loss
-            loss = loss_function(y_hat, x_batch)
+            loss = loss_function(y_hat, label_batch)
 
             # Compute batch_loss
             val_batch_loss = loss.detach().cpu().numpy()
             val_epoch_loss.append(val_batch_loss)
 
     return np.mean(val_epoch_loss)
-    
-

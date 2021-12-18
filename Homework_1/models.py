@@ -1,12 +1,8 @@
 import torch
-from pytorch_lightning import LightningModule
 import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import random_split
-from torchvision import transforms
-from torchmetrics import Accuracy
 
-class ConvNet(LightningModule):
+
+class ConvNet(nn.Module):
     
     def __init__(self, parameters):
         """
@@ -14,32 +10,14 @@ class ConvNet(LightningModule):
         -----------
         Parameters:
         act = activation function 
-        optmizer = optmizer used for backprop
-        loss_fn = loss function used
-        lr = learning rate
-        L2_reg = weight decay/L2 regularization term 
         drop_p = dropout probability
-        train_loss = list to save training loss
-        val_loss = list to save validation loss
-        val_acc = list to save validation accuracy
         """
         super().__init__()
         
         # Parameters 
         self.act = getattr(nn, parameters["act"])
-        self.optimizer = getattr(optim, parameters["optimizer"])
-        self.loss_fn = getattr(nn, parameters["loss_fn"])()
-        self.lr = parameters["lr"]
-        self.L2_reg = parameters["L2_reg"]
         self.drop_p = parameters["drop_p"]
-        self.train_loss = []
-        self.val_loss = []
-        self.val_acc = []
         
-        # Transforms
-        self.transform = transforms.Compose([
-            transforms.ToTensor()
-        ])
         
         ## Network architecture
         # Convolution part
@@ -75,34 +53,6 @@ class ConvNet(LightningModule):
         x = self.lin(x)
         return x
         
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        out = self(x)
-        loss = self.loss_fn(out, y)
-        self.train_loss.append(loss.item()) # Save train loss
-        self.log("train_loss", loss, on_step = True, on_epoch = True,  prog_bar = True, logger = True)
-        return loss
-    
-    def validation_step(self, batch, batch_idx):
-        x, y = batch
-        out = self(x)
-        loss = self.loss_fn(out, y)
-        preds = torch.argmax(out, dim=1)
-        acc = Accuracy()(preds, y)
-        self.log('val_loss', loss, on_step = True, on_epoch = True, prog_bar=True, logger = True)
-        self.log('val_acc', acc, on_step = True, on_epoch = True, prog_bar=True, logger = True)
-        # Save loss and acc
-        self.val_loss.append(loss.item())
-        self.val_acc.append(acc.item())
-        return loss
-
-    def test_step(self, batch, batch_idx):
-        # Here we just reuse the validation_step for testing
-        return self.validation_step(batch, batch_idx)
-
-    def configure_optimizers(self):
-        opt = self.optimizer(self.parameters(), lr = self.lr, weight_decay = self.L2_reg)
-        return opt
         
     
 class FFNet(nn.Module):
