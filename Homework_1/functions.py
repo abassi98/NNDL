@@ -25,7 +25,8 @@ def my_accuracy(net, device, dataloader):
     total = 0
     correct = 0
     mismatched = []
-    confusion_list = []
+    predictions = []
+    trues = []
     
     with torch.no_grad():
         for  x_batch, label_batch in dataloader:
@@ -56,15 +57,13 @@ def my_accuracy(net, device, dataloader):
             # Take probabilities
             prob = out_soft.detach().cpu().numpy()
             
-            # Create confusion list whose first item is the true label, while the second is a numpy vector of probabilities
-            confusion = [true, prob]
-            
-            # Append confusion to confusion_list
-            confusion_list.append(confusion)
+            # Append to lists
+            predictions.append(predicted)
+            trues.append(true)
                                   
             total += 1
 
-    return mismatched, confusion_list, 100.0*correct/total
+    return mismatched, [trues, predictions], 100.0*correct/total
     
 
 
