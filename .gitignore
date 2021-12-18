@@ -137,3 +137,6 @@ MNIST
 *.jpeg
 
 lightning_logs
+
+.DS_Store
+
