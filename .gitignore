@@ -135,3 +135,5 @@ MNIST
 *.jpg
 *.png
 *.jpeg
+
+lightning_logs
