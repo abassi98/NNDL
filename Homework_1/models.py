@@ -15,7 +15,7 @@ class ConvNet(nn.Module):
         super().__init__()
         
         # Parameters 
-        self.act = getattr(nn, parameters["act"])
+        self.act = parameters["act"]
         self.drop_p = parameters["drop_p"]
         
         
@@ -57,47 +57,45 @@ class ConvNet(nn.Module):
     
 class FFNet(nn.Module):
 
-   def __init__(self, N_in, h1, h2, N_out):
-      """
-      Initialize a typical feedforward network with two hidden layers
-      The input is typically a mnist image, given as a torch tensor of size = (1,784)
-      ----------
-      Parameters:
-      in_size = size of visible layer
-      out_size = size of output layers
-      layer_sizes = list of sizes of hidden layers
-      """
+    def __init__(self, N_in, h1, h2, N_out):
+        """
+        Initialize a typical feedforward network with two hidden layers
+        The input is typically a mnist image, given as a torch tensor of size = (1,784)
+         ----------
+        Parameters:
+        in_size = size of visible layer
+        out_size = size of output layers
+        layer_sizes = list of sizes of hidden layers
+        """
 
-      super().__init__()
+        super().__init__()
 
-      # Parameters
-      self.N_in = N_in
-      self.h1 = h1
-      self.h2 = h2
-      self.N_out = N_out
+        # Parameters
+        self.N_in = N_in
+        self.h1 = h1
+        self.h2 = h2
+        self.N_out = N_out
 
-      # Network architecture
-      self.input = nn.Linear(in_features =N_in, out_features = h1)
-      self.hidden = nn.Linear(in_features =h1, out_features = h2)      
-      self.output = nn.Linear(in_features =h2, out_features = N_out)
+        # Network architecture
+        self.input = nn.Linear(in_features =N_in, out_features = h1)
+        self.hidden = nn.Linear(in_features =h1, out_features = h2)      
+        self.output = nn.Linear(in_features =h2, out_features = N_out)
 
-      # Activation function      
-      self.act = nn.ReLU()  
+        # Activation function      
+        self.act = nn.ReLU()  
           
-      print("Network initialized")
+        print("Network initialized")
                   
 
-   def forward(self, x):
+    def forward(self, x):
 
-      x = self.input(x)
-      x = self.act(x)
+        x = self.input(x)
+        x = self.act(x)
+        x = self.hidden(x)
+        x = self.act(x)
+        x = self.output(x)
 
-      x = self.hidden(x)
-      x = self.act(x)
-
-      x = self.output(x)
-
-      return x
+        return x
 
 
 
