@@ -57,44 +57,42 @@ class ConvNet(nn.Module):
     
 class FFNet(nn.Module):
 
-    def __init__(self, N_in, h1, h2, N_out):
+    def __init__(self, parameters):
         """
-        Initialize a typical feedforward network with two hidden layers
+        Initialize a typical feedforward network with different hidden layers
         The input is typically a mnist image, given as a torch tensor of size = (1,784)
          ----------
         Parameters:
-        in_size = size of visible layer
-        out_size = size of output layers
-        layer_sizes = list of sizes of hidden layers
+        layers_sizes = list of sizes of the hidden layers, the first is the visible layer and the last is the output layer
+
         """
 
         super().__init__()
 
         # Parameters
-        self.N_in = N_in
-        self.h1 = h1
-        self.h2 = h2
-        self.N_out = N_out
-
+        self.layers_sizes = parameters["layers_sizes"]
+        self.num_layers = len(self.layers_sizes)
+        self.act = parameters["act"]
+        
         # Network architecture
-        self.input = nn.Linear(in_features =N_in, out_features = h1)
-        self.hidden = nn.Linear(in_features =h1, out_features = h2)      
-        self.output = nn.Linear(in_features =h2, out_features = N_out)
-
-        # Activation function      
-        self.act = nn.ReLU()  
-          
+        layers = []
+        for l in range(self.num_layers-2):
+            layers.append(nn.Linear(in_features = self.layers_sizes[l], out_features = self.layers_sizes[l+1]))
+            layers.append(self.act())
+        
+        layers.append(nn.Linear(in_features = self.layers_sizes[self.num_layers-2], out_features = self.layers_sizes[self.num_layers-1]))
+        
+        self.layers = nn.ModuleList(layers)
+                          
         print("Network initialized")
                   
 
     def forward(self, x):
 
-        x = self.input(x)
-        x = self.act(x)
-        x = self.hidden(x)
-        x = self.act(x)
-        x = self.output(x)
-
+        for l in range(len(self.layers)):
+            layer = self.layers[l]
+            x = layer(x)
+ 
         return x
 
 
