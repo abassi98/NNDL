@@ -53,6 +53,7 @@ class ConvNet(nn.Module):
         x = self.lin(x)
         return x
         
+    
         
     
 class FFNet(nn.Module):

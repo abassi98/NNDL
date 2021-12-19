@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+
 ### Train function
 def train_epoch(net, device, dataloader, loss_function, optimizer):
     """
@@ -83,3 +84,5 @@ def val_epoch(net,  device, dataloader, loss_function):
             val_epoch_loss.append(val_batch_loss)
 
     return np.mean(val_epoch_loss)
+
+
