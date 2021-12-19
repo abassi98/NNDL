@@ -136,7 +136,9 @@ MNIST
 *.png
 *.jpeg
 
+# Other useful
 lightning_logs
-
 .DS_Store
+*.csv
+
 
