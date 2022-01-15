@@ -24,23 +24,23 @@ class ConvNet(nn.Module):
         self.cnn = nn.Sequential(
             #first convolution layer
             nn.Conv2d(1, 16, 5),  # out = (N, 16, 24, 24)
-            self.act(),
-	    nn.MaxPool2d(2),  # out = (N, 16, 12, 12)
-	    nn.Dropout(self.drop_p),
+            self.act(inplace = True),
+        nn.MaxPool2d(2),  # out = (N, 16, 12, 12)
+        nn.Dropout(self.drop_p, inplace = True),
             # Second convolution layer
-	    nn.Conv2d(16, 32, 5), # out = (N, 32, 8, 8)
-	    self.act(),
-	    nn.MaxPool2d(2), # out = (N, 32, 4, 4)
-	    nn.Dropout(self.drop_p)
-	    )
-    	
-    	# Linear classifier
+        nn.Conv2d(16, 32, 5), # out = (N, 32, 8, 8)
+        self.act(inplace = True),
+        nn.MaxPool2d(2), # out = (N, 32, 4, 4)
+        nn.Dropout(self.drop_p, inplace = True)
+        )
+    
+        # Linear classifier
         self.lin = nn.Sequential(
             nn.Linear(in_features = 32*4*4, out_features = 128),
-            self.act(),
-            nn.Dropout(self.drop_p),
-	    nn.Linear(in_features = 128, out_features = 10)
-	    )
+            self.act(inplace = True),
+            nn.Dropout(self.drop_p, inplace = True),
+        nn.Linear(in_features = 128, out_features = 10)
+        )
 
         print("Network initialized")
         
@@ -74,12 +74,14 @@ class FFNet(nn.Module):
         self.layers_sizes = parameters["layers_sizes"]
         self.num_layers = len(self.layers_sizes)
         self.act = parameters["act"]
+        self.drop_p = parameters["drop_p"]
         
         # Network architecture
         layers = []
         for l in range(self.num_layers-2):
             layers.append(nn.Linear(in_features = self.layers_sizes[l], out_features = self.layers_sizes[l+1]))
-            layers.append(self.act())
+            layers.append(nn.Dropout(self.drop_p, inplace = True))
+            layers.append(self.act(inplace = True))
         
         layers.append(nn.Linear(in_features = self.layers_sizes[self.num_layers-2], out_features = self.layers_sizes[self.num_layers-1]))
         
