@@ -2,8 +2,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 from tqdm.notebook import tqdm_notebook
+from functions import my_accuracy
 
-### Train function
+### Train epoch function
 def train_epoch(net, device, dataloader, loss_function, optimizer):
     """
     Train an epoch of data
@@ -47,7 +48,7 @@ def train_epoch(net, device, dataloader, loss_function, optimizer):
     return np.mean(train_epoch_loss)
     
 
-### Test function
+### Test epoch function
 def val_epoch(net,  device, dataloader, loss_function):
     """
     Validate an epoch of data
@@ -125,6 +126,44 @@ def train_epochs(net, device, train_dataloader, val_dataloader, loss_function, o
                 break
     
     return train_loss_log, val_loss_log
+
+### Trainin epochs with accuracy (classification tasks)
+def train_epochs_acc(net, device, train_dataloader, val_dataloader, test_dataloader, loss_function, optimizer, max_num_epochs, early_stopping = True):
+    
+    # Pogress bar
+    pbar = tqdm_notebook(range(max_num_epochs))
+
+    # Inizialize empty lists to save losses
+    train_loss_log = []
+    val_loss_log = []
+    accuracy = []
+
+    for epoch_num in pbar:
+        # Compute accuracy before training
+        mismatched, confusion, acc = my_accuracy(net, device, test_dataloader)
+
+        # Tran epoch
+        mean_train_loss = train_epoch(net, device, train_dataloader, loss_function, optimizer)
+
+        # Validate epoch
+        mean_val_loss = val_epoch(net,  device, val_dataloader, loss_function)
+
+        # Append losses and accuracy
+        train_loss_log.append(mean_train_loss)
+        val_loss_log.append(mean_val_loss)
+        accuracy.append(acc)
+
+        # Set pbar description
+        pbar.set_description("Train loss: %s" %round(mean_train_loss,2)+", "+"Val loss %s" %round(mean_val_loss,2)
+                             +", "+"Test accuracy %s" %round(acc,2)+"%")
+        
+        # Early stopping
+        if early_stopping:
+            if np.mean(val_loss_log[-10:]) < val_loss_log[-1]:
+                print("Training stopped at epoch "+str(epoch_num)+" to avoid overfitting.")
+                break
+    
+    return train_loss_log, val_loss_log, accuracy
 
 ### Create k-folds splits
 def KF_split(k_fold, batch_size, dataset):
