@@ -121,7 +121,7 @@ def train_epochs(net, device, train_dataloader, val_dataloader, loss_function, o
         
         # Early stopping
         if early_stopping:
-            if epoch_num>10 and np.mean(val_loss_log[-100:]) < val_loss_log[-1]:
+            if epoch_num>10 and np.mean(val_loss_log[-10:]) < val_loss_log[-1]:
                 print("Training stopped at epoch "+str(epoch_num)+" to avoid overfitting.")
                 break
     
