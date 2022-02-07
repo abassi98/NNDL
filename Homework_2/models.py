@@ -27,10 +27,10 @@ class ConvEncoder(nn.Module):
         ### Linear section
         self.encoder_lin = nn.Sequential(
             # First linear layer
-            nn.Linear(3 * 3 * 32, 64),
+            nn.Linear(3 * 3 * 32, 128),
             nn.ReLU(True),
             # Second linear layer
-            nn.Linear(64, encoded_space_dim)
+            nn.Linear(128, encoded_space_dim)
         )
         
     def forward(self, x):
@@ -85,7 +85,23 @@ class ConvDecoder(nn.Module):
         x = torch.sigmoid(x)
         return x
         
+class ConvAE(nn.Module):
+    
+    def __init__(self, encoded_space_dim):
+        super().__init__()
+        self.encoder = ConvEncoder(encoded_space_dim)
+        self.decoder = ConvDecoder(encoded_space_dim)
         
+        
+    def forward(self, x):
+    
+        ### Encode data
+        encoded_data = self.encoder(x)
+      
+        ### Decode data
+        decoded_data = self.decoder(encoded_data)
+        
+        return (encoded_data, decoded_data)
 
 class VConvEncoder(nn.Module):
 
@@ -155,15 +171,13 @@ class ConvVAE(nn.Module):
         
     def forward(self, x):
     
-        ### Encode data
-        
+        ### Encode data       
         mean, log_var = self.encoder(x)
         
         # Sampling
         x = Sampler(mean, log_var)
         
-        ### Decode data
-        
+        ### Decode data       
         x = self.decoder(x)
         
         return (mean, log_var, x)

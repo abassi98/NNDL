@@ -4,10 +4,11 @@ import numpy as np
 from tqdm.notebook import tqdm_notebook
 import matplotlib.pyplot as plt
 from IPython import display
+from functions import my_accuracy
 
 ### Normal autoencoder training functions
 # Train function
-def train_epoch(encoder, decoder, device, dataloader, loss_function, optimizer, noise = None):
+def train_epoch(net, device, dataloader, loss_function, optimizer, noise = None):
     """
     Train an epoch of data
     -----------
@@ -23,8 +24,8 @@ def train_epoch(encoder, decoder, device, dataloader, loss_function, optimizer, 
     average training loss over the epoch
     """
     # Set the train mode
-    encoder.train()
-    decoder.train()
+    net.train()
+    
     # List to save batch losses
     train_epoch_loss = []
     # Iterate the dataloader
@@ -37,11 +38,8 @@ def train_epoch(encoder, decoder, device, dataloader, loss_function, optimizer, 
             x_batch = noise(x_batch)
     
         # Encode data
-        encoded_data = encoder(x_batch)
+        encoded_data, decoded_data = net(x_batch)
         
-        # Decode data
-        decoded_data = decoder(encoded_data)
-
         # Compute loss
         loss = loss_function(decoded_data, x_batch)
 
@@ -58,7 +56,7 @@ def train_epoch(encoder, decoder, device, dataloader, loss_function, optimizer, 
     
 
 # Validation function
-def val_epoch(encoder, decoder,  device, dataloader, loss_function, noise = None):
+def val_epoch(net, device, dataloader, loss_function, noise = None):
     """
     Validate an epoch of data
     -----------
@@ -73,8 +71,7 @@ def val_epoch(encoder, decoder,  device, dataloader, loss_function, noise = None
     average validation loss over the epoch
     """
     # Set evaluation mode
-    encoder.eval()
-    decoder.eval()
+    net.eval()
     # List to save evaluation losses
     val_epoch_loss = []
     with torch.no_grad():
@@ -88,10 +85,7 @@ def val_epoch(encoder, decoder,  device, dataloader, loss_function, noise = None
                 x_batch = noise(x_batch)
 
             # Encode data
-            encoded_data = encoder(x_batch)
- 
-            # Decode data
-            decoded_data = decoder(encoded_data)
+            encoded_data, decoded_data = net(x_batch)
 
             # Compute loss
             loss = loss_function(decoded_data, x_batch)
@@ -102,7 +96,7 @@ def val_epoch(encoder, decoder,  device, dataloader, loss_function, noise = None
             
     return np.mean(val_epoch_loss)
 
-def train_epochs(encoder, decoder, device, train_dataloader, val_dataloader, test_data, loss_function, optimizer, max_num_epochs, early_stopping):
+def train_epochs(net, device, train_dataloader, val_dataloader, test_data, loss_function, optimizer, max_num_epochs, early_stopping):
     """
     Train multiple epochs with early stopping
     --------
@@ -119,10 +113,10 @@ def train_epochs(encoder, decoder, device, train_dataloader, val_dataloader, tes
     for epoch_num in pbar:
 
         # Train an epoch and save losses
-        mean_train_loss = train_epoch(encoder, decoder, device, train_dataloader, loss_function, optimizer)
+        mean_train_loss = train_epoch(net, device, train_dataloader, loss_function, optimizer)
 
         # Validate an epoch
-        mean_val_loss = val_epoch(encoder, decoder,  device, val_dataloader, loss_function)
+        mean_val_loss = val_epoch(net, device, val_dataloader, loss_function)
 
 
         # Append to plot
@@ -142,10 +136,9 @@ def train_epochs(encoder, decoder, device, train_dataloader, val_dataloader, tes
         
         # Get the output of a specific image (the test image at index 0 in this case)
         img = test_data[0][0].unsqueeze(0).to(device)
-        encoder.eval()
-        decoder.eval()
+        net.eval()
         with torch.no_grad():
-            rec_img  = decoder(encoder(img))
+            _ , rec_img  = net(img)
         # Plot the reconstructed image
         fig, axs = plt.subplots(1, 2, figsize=(12,6))
         axs[0].imshow(img.cpu().squeeze().numpy(), cmap='gist_gray')
@@ -258,3 +251,41 @@ def ft_val_epoch(encoder,  device, dataloader, loss_function, noise = None):
             val_epoch_loss.append(val_batch_loss)
             
     return np.mean(val_epoch_loss)
+
+def ft_train_epochs(net, device, train_dataloader, val_dataloader, test_dataloader, loss_function, optimizer, max_num_epochs, early_stopping):
+    
+    # Pogress bar
+    pbar = tqdm_notebook(range(max_num_epochs))
+
+    # Inizialize empty lists to save losses
+    train_loss_log = []
+    val_loss_log = []
+    accuracy = []
+
+    for epoch_num in pbar:
+        
+        # Compute accuracy before training
+        mismatched, confusion, acc = my_accuracy(net.encoder, device, test_dataloader)
+
+        # Tran epoch
+        mean_train_loss = ft_train_epoch(net.encoder, device, train_dataloader, loss_function, optimizer)
+
+        # Validate epoch
+        mean_val_loss = ft_val_epoch(net.encoder,  device, val_dataloader, loss_function)
+
+        # Append losses and accuracy
+        train_loss_log.append(mean_train_loss)
+        val_loss_log.append(mean_val_loss)
+        accuracy.append(acc)
+
+        # Set pbar description
+        pbar.set_description("Train loss: %s" %round(mean_train_loss,2)+", "+"Val loss %s" %round(mean_val_loss,2)
+                             +", "+"Test accuracy %s" %round(acc,2)+"%")
+        
+        # Early stopping
+        if early_stopping:
+            if np.mean(val_loss_log[-10:]) < val_loss_log[-1]:
+                print("Training stopped at epoch "+str(epoch_num)+" to avoid overfitting.")
+                break
+    
+    return train_loss_log, val_loss_log, accuracy
