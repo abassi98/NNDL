@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 from tqdm.notebook import tqdm_notebook
 from functions import my_accuracy
+from torch.utils.data import Dataset, DataLoader
 
 ### Train epoch function
 def train_epoch(net, device, dataloader, loss_function, optimizer):
@@ -87,7 +88,7 @@ def val_epoch(net,  device, dataloader, loss_function):
     return np.mean(val_epoch_loss)
 
 ### Training epochs
-def train_epochs(net, device, train_dataloader, val_dataloader, loss_function, optimizer, max_num_epochs, early_stopping = True):
+def train_epochs(net, device, train_dataloader, val_dataloader, loss_function, optimizer, max_num_epochs, early_stopping = False):
     """
     Train an epoch
     ___________
@@ -122,7 +123,7 @@ def train_epochs(net, device, train_dataloader, val_dataloader, loss_function, o
         # Early stopping
         if early_stopping:
             if epoch_num>10 and np.mean(val_loss_log[-10:]) < val_loss_log[-1]:
-                print("Training stopped at epoch "+str(epoch_num)+" to avoid overfitting.")
+                raise ValueError("Training stopped at epoch "+str(epoch_num)+" to avoid overfitting.")
                 break
     
     return train_loss_log, val_loss_log
@@ -160,7 +161,7 @@ def train_epochs_acc(net, device, train_dataloader, val_dataloader, test_dataloa
         # Early stopping
         if early_stopping:
             if np.mean(val_loss_log[-10:]) < val_loss_log[-1]:
-                print("Training stopped at epoch "+str(epoch_num)+" to avoid overfitting.")
+                raise ValueError("Training stopped at epoch "+str(epoch_num)+" to avoid overfitting.")
                 break
     
     return train_loss_log, val_loss_log, accuracy
@@ -195,27 +196,33 @@ def KF_split(k_fold, batch_size, dataset):
 
 
 ### Train epochs with k-fold cross validation
-def kf_train_epochs(net, device, k_fold, batch_size, dataset, max_number_epochs, early_stopping = True):
+def kf_train_epochs(net, device, k_fold, batch_size, dataset, test_dataloader, loss_function, optimizer, max_num_epochs, early_stopping = True):
     """
     """
     # Progress bar
     pbar = tqdm_notebook(range(max_num_epochs))
 
     # Inizialize empty lists to save fold list losses
-    train_loss_log = []
-    val_loss_log = []
-    
+    mean_train = []
+    std_train = []
+    mean_val = []
+    std_val = []
     
     # Define dataloaders
     kf_dataloaders = KF_split(k_fold, batch_size, dataset)
     
     for epoch_num in pbar:
+        
         # Empty lìsts to save fold losses
         train_loss_folds = []
         val_loss_folds = []
         
+        # Compute accuracy before training
+        mismatched, confusion, acc = my_accuracy(net, device, test_dataloader)
+               
         # Iterate over each fold
         for f in range(k_fold):
+                       
             # Compute validation loss on f fold
             val_loss_fold = val_epoch(net, device, kf_dataloaders[f], loss_function)
             
@@ -232,10 +239,19 @@ def kf_train_epochs(net, device, k_fold, batch_size, dataset, max_number_epochs,
             
             # Append in list for each epoch
             train_loss_folds.append(train_loss_fold)
-            val_loss_folds.append(train_loss_fold)
+            val_loss_folds.append(val_loss_fold)
             
-        # Append fold losses lists on logs
-        train_loss_log.append(train_loss_folds)
-        val_loss_log.append(val_loss_folds)
         
-    return train_loss_log, val_loss_log
+        
+        # Set pbar description
+        pbar.set_description("Train loss: %s" %round(np.mean(train_loss_folds),2)+", "+"Val loss %s" %round(np.mean(val_loss_folds),2)
+                             +", "+"Validation accuracy %s" %round(acc,2)+"%")
+       
+        # Append fold losses lists on logs
+        mean_train.append(np.mean(train_loss_folds))
+        std_train.append(np.std(train_loss_folds))
+        mean_val.append(np.mean(val_loss_folds))
+        std_val.append(np.std(val_loss_folds))
+        
+        
+    return mean_train, std_train, mean_val, std_val
