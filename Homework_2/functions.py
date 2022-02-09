@@ -36,7 +36,7 @@ def my_accuracy(net, device, dataloader):
             label_batch = label_batch.to(device)
 
             # Forward pass
-            y_hat = net(x_batch)
+            y_hat, _ , _ = net(x_batch)
             y_hat = y_hat.squeeze()
 
             # Apply softmax 

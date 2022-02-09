@@ -24,22 +24,25 @@ class ConvNet(nn.Module):
         self.cnn = nn.Sequential(
             #first convolution layer
             nn.Conv2d(1, 16, 5),  # out = (N, 16, 24, 24)
+            nn.BatchNorm2d(16),
             self.act(inplace = True),
-        nn.MaxPool2d(2),  # out = (N, 16, 12, 12)
-        nn.Dropout(self.drop_p, inplace = False),
+            nn.Dropout(self.drop_p, inplace = False),
+            nn.MaxPool2d(2),  # out = (N, 16, 12, 12)
             # Second convolution layer
-        nn.Conv2d(16, 32, 5), # out = (N, 32, 8, 8)
-        self.act(inplace = True),
-        nn.MaxPool2d(2), # out = (N, 32, 4, 4)
-        nn.Dropout(self.drop_p, inplace = False)
+            nn.Conv2d(16, 32, 5), # out = (N, 32, 8, 8)
+            nn.BatchNorm2d(32),
+            self.act(inplace = True),
+            nn.Dropout(self.drop_p, inplace = False),
+            nn.MaxPool2d(2) # out = (N, 32, 4, 4)
         )
     
         # Linear classifier
         self.lin = nn.Sequential(
             nn.Linear(in_features = 32*4*4, out_features = 128),
+            nn.BatchNorm1d(128),
             self.act(inplace = True),
             nn.Dropout(self.drop_p, inplace = False),
-        nn.Linear(in_features = 128, out_features = 10)
+            nn.Linear(in_features = 128, out_features = 10)
         )
 
         print("Network initialized")

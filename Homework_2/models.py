@@ -4,104 +4,155 @@ from VAE_functions import Sampler
 
 class ConvEncoder(nn.Module):
     
-    def __init__(self, encoded_space_dim):
+    def __init__(self, parameters):
+        
         super().__init__()
         
+        # Retrieve parameters
+        self.encoded_space_dim = parameters["encoded_space_dim"]
+        self.drop_p = parameters["drop_p"]
+        self.act = parameters["act"]
         
-        ### Convolutional section
-        self.encoder_cnn = nn.Sequential(
-            # First convolutional layer
-            nn.Conv2d(1, 8, 3, stride=2, padding=1),
-            nn.ReLU(True),
-            # Second convolutional layer
-            nn.Conv2d(8, 16, 3, stride=2, padding=1),
-            nn.ReLU(True),
-            # Third convolutional layer
-            nn.Conv2d(16, 32, 3, stride=2, padding=0),
-            nn.ReLU(True)
+        ### Network architecture
+        # First convolutional layer
+        self.first_conv = nn.Sequential(
+            nn.Conv2d(1, 16, 5),  # out = (N, 16, 24, 24)
+            nn.BatchNorm2d(16),
+            self.act(inplace = True),
+            nn.Dropout(self.drop_p, inplace = False),
+            nn.MaxPool2d(2, return_indices=True)  # out = (N, 16, 12, 12)
         )
         
-        ### Flatten layer
+        # Second convolution layer
+        self.second_conv = nn.Sequential(
+            nn.Conv2d(16, 32, 5), # out = (N, 32, 8, 8)
+            nn.BatchNorm2d(32),
+            self.act(inplace = True),
+            nn.Dropout(self.drop_p, inplace = False),
+            nn.MaxPool2d(2, return_indices=True) # out = (N, 32, 4, 4)
+        )
+        
+        # Flatten layer
         self.flatten = nn.Flatten(start_dim=1)
-
-        ### Linear section
+        
+        # Linear encoder
         self.encoder_lin = nn.Sequential(
             # First linear layer
-            nn.Linear(3 * 3 * 32, 128),
-            nn.ReLU(True),
+            nn.Linear(32*4*4, 128),
+            nn.BatchNorm1d(128),
+            self.act(inplace = True),
+            nn.Dropout(self.drop_p, inplace = False),
             # Second linear layer
-            nn.Linear(128, encoded_space_dim)
+            nn.Linear(128, self.encoded_space_dim)
         )
+
         
     def forward(self, x):
-        # Apply convolutions
-        x = self.encoder_cnn(x)
-        # Flatten
+        # Apply first convolutional layer
+        x, indeces_1 = self.first_conv(x)
+        
+        # Apply second convolutional layer
+        x, indeces_2 = self.second_conv(x)
+        
+        # Flatten 
         x = self.flatten(x)
-        # # Apply linear layers
-        x = self.encoder_lin(x)
-        return x
-
-
+        
+        # Apply linear encoder layer
+        encoded_data = self.encoder_lin(x)
+        
+        return (encoded_data, indeces_1, indeces_2)
+    
 class ConvDecoder(nn.Module):
     
-    def __init__(self, encoded_space_dim):
+    def __init__(self, parameters):
+        
         super().__init__()
-
-	
-        ### Linear section
+        
+        # Retrieve parameters
+        self.encoded_space_dim = parameters["encoded_space_dim"]
+        self.drop_p = parameters["drop_p"]
+        self.act = parameters["act"]
+        
+        ### Network architecture
+        # Linear decoder
         self.decoder_lin = nn.Sequential(
             # First linear layer
-            nn.Linear(encoded_space_dim, 64),
-            nn.ReLU(True),
+            nn.Linear(self.encoded_space_dim, 128),
+            nn.Dropout(self.drop_p, inplace = False),
+            self.act(inplace = False),
+            nn.BatchNorm1d(128),
             # Second linear layer
-            nn.Linear(64, 3 * 3 * 32),
-            nn.ReLU(True)
+            nn.Linear(128, 32*4*4)
         )
-
-        ### Unflatten
-        self.unflatten = nn.Unflatten(dim=1, unflattened_size=(32, 3, 3))
-
-        ### Convolutional section
-        self.decoder_conv = nn.Sequential(
+        
+        # Unflatten layer
+        self.unflatten = nn.Unflatten(dim=1, unflattened_size=(32, 4, 4))
+        
+        # Unpooling layer
+        self.unpool = nn.MaxUnpool2d(2)
+        
+        self.first_deconv = nn.Sequential(
             # First transposed convolution
-            nn.ConvTranspose2d(32, 16, 3, stride=2, output_padding=0),
-            nn.ReLU(True),
-            # Second transposed convolution
-            nn.ConvTranspose2d(16, 8, 3, stride=2, padding=1, output_padding=1),
-            nn.ReLU(True),
-            # Third transposed convolution
-            nn.ConvTranspose2d(8, 1, 3, stride=2, padding=1, output_padding=1)
+            nn.Dropout(self.drop_p, inplace = False),
+            self.act(inplace = True),
+            nn.BatchNorm2d(32),
+            nn.ConvTranspose2d(32, 16, 5) # out = (N ,16, 12, 12)    
         )
         
-    def forward(self, x):
-        # Apply linear layers
-        x = self.decoder_lin(x)
-        # Unflatten
-        x = self.unflatten(x)
-        # Apply transposed convolutions
-        x = self.decoder_conv(x)
-        # Apply a sigmoid to force the output to be between 0 and 1 (valid pixel values)
-        x = torch.sigmoid(x)
-        return x
+        self.second_deconv = nn.Sequential(
+            nn.Dropout(self.drop_p, inplace = False),
+            self.act(inplace = True),
+            nn.BatchNorm2d(16),
+            nn.ConvTranspose2d(16, 1, 5) # out = (N, 1, 28, 28)
+        )
         
+    def forward(self, x, indeces_1, indeces_2):
+        
+        # Apply linear decoder
+        x = self.decoder_lin(x)
+        
+        # Unflatte layer
+        x = self.unflatten(x)
+        
+        # Apply first unpooling layer
+        x = self.unpool(x,  indeces_2)
+        
+        # Apply first deconvolutional layer
+        x = self.first_deconv(x)
+        
+        # Apply second unpooling layer
+        x = self.unpool(x, indeces_1)
+        
+        # Apply second deconvolutional layer
+        x = self.second_deconv(x)
+        
+        # Apply a sigmoid to force the output to be between 0 and 1 (valid pixel values)
+        decoded_data = torch.sigmoid(x)
+        
+        return decoded_data
+        
+
 class ConvAE(nn.Module):
     
-    def __init__(self, encoded_space_dim):
+    def __init__(self, parameters):
         super().__init__()
-        self.encoder = ConvEncoder(encoded_space_dim)
-        self.decoder = ConvDecoder(encoded_space_dim)
+        
+        self.encoder = ConvEncoder(parameters)
+        self.decoder = ConvDecoder(parameters)
         
         
     def forward(self, x):
-    
-        ### Encode data
-        encoded_data = self.encoder(x)
-      
-        ### Decode data
-        decoded_data = self.decoder(encoded_data)
+        
+        # Encode data and keep track of indexes
+        encoded_data, indeces_1, indeces_2 = self.encoder(x)
+        
+        # Decode data
+        decoded_data = self.decoder(encoded_data, indeces_1, indeces_2)
         
         return (encoded_data, decoded_data)
+
+
+
 
 class VConvEncoder(nn.Module):
 

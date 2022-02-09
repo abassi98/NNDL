@@ -192,7 +192,7 @@ def ft_train_epoch(encoder, device, dataloader, loss_function, optimizer, noise 
             x_batch = noise(x_batch)
     
         # Encode data
-        encoded_data = encoder(x_batch)
+        encoded_data, _ , _ = encoder(x_batch)
 
         # Compute loss
         loss = loss_function(encoded_data, label_batch)
@@ -241,7 +241,7 @@ def ft_val_epoch(encoder,  device, dataloader, loss_function, noise = None):
                 x_batch = noise(x_batch)
 
             # Encode data
-            encoded_data = encoder(x_batch)
+            encoded_data, _ , _ = encoder(x_batch)
 
             # Compute loss
             loss = loss_function(encoded_data, label_batch)
