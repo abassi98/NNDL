@@ -217,9 +217,10 @@ def kf_train_epochs(net, device, k_fold, batch_size, dataset, test_dataloader, l
         train_loss_folds = []
         val_loss_folds = []
         
+        acc = 0.0
         # Compute accuracy before training
-        if loss_funct
-        mismatched, confusion, acc = my_accuracy(net, device, test_dataloader)
+        if loss_function == nn.CrossEntropyLoss():
+            mismatched, confusion, acc = my_accuracy(net, device, test_dataloader)
                
         # Iterate over each fold
         for f in range(k_fold):
@@ -248,11 +249,7 @@ def kf_train_epochs(net, device, k_fold, batch_size, dataset, test_dataloader, l
         pbar.set_description("Train loss: %s" %round(np.mean(train_loss_folds),2)+", "+"Val loss %s" %round(np.mean(val_loss_folds),2)
                              +", "+"Test accuracy %s" %round(acc,2)+"%")
        
-        # Early stopping
-        if early_stopping:
-            if np.mean(mean_val[-10:]) < mean_val[-1]:
-                print("Training stopped at epoch "+str(epoch_num)+" to avoid overfitting.")
-                break
+        
                 
         # Append fold losses lists on logs
         mean_train.append(np.mean(train_loss_folds))
@@ -260,5 +257,10 @@ def kf_train_epochs(net, device, k_fold, batch_size, dataset, test_dataloader, l
         mean_val.append(np.mean(val_loss_folds))
         std_val.append(np.std(val_loss_folds))
         
+        # Early stopping
+        if early_stopping:
+            if np.mean(mean_val[-10:]) < mean_val[-1]:
+                print("Training stopped at epoch "+str(epoch_num)+" to avoid overfitting.")
+                break
         
     return mean_train, std_train, mean_val, std_val
