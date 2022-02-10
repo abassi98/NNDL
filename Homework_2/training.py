@@ -96,7 +96,7 @@ def val_epoch(net, device, dataloader, loss_function, noise = None):
             
     return np.mean(val_epoch_loss)
 
-def train_epochs(net, device, train_dataloader, val_dataloader, test_data, loss_function, optimizer, max_num_epochs, early_stopping):
+def train_epochs(net, device, train_dataloader, val_dataloader, test_data, loss_function, optimizer, max_num_epochs, early_stopping, plot_progress):
     """
     Train multiple epochs with early stopping
     --------
@@ -131,29 +131,29 @@ def train_epochs(net, device, train_dataloader, val_dataloader, test_data, loss_
             if epoch_num>10 and np.mean(val_loss_log[-10:]) < val_loss_log[-1]:
                 print("Training stopped at epoch "+str(epoch_num)+" to avoid overfitting.")
                 break
-
-        ### Plot progress
         
-        # Get the output of a specific image (the test image at index 0 in this case)
-        img = test_data[0][0].unsqueeze(0).to(device)
-        net.eval()
-        with torch.no_grad():
-            _ , rec_img  = net(img)
-        # Plot the reconstructed image
-        fig, axs = plt.subplots(1, 2, figsize=(12,6))
-        axs[0].imshow(img.cpu().squeeze().numpy(), cmap='gist_gray')
-        axs[0].set_title('Original image')
-        axs[1].imshow(rec_img.cpu().squeeze().numpy(), cmap='gist_gray')
-        axs[1].set_title('Reconstructed image (EPOCH %d)' % (epoch_num + 1))
-        plt.tight_layout()
-        plt.pause(0.1)
-        # Save figures
-        #os.makedirs('autoencoder_progress_%d_features' % encoded_space_dim, exist_ok=True)
-        #fig.savefig('autoencoder_progress_%d_features/epoch_%d.jpg' % (encoded_space_dim, epoch_num + 1))
-        fig.canvas.draw()
-        #display.display(plt.show())
-        #display.clear_output(wait=True)
-    
+        if plot_progress:
+            ### Plot progress
+            # Get the output of a specific image (the test image at index 0 in this case)
+            img = test_data[0][0].unsqueeze(0).to(device)
+            net.eval()
+            with torch.no_grad():
+                _ , rec_img  = net(img)
+            # Plot the reconstructed image
+            fig, axs = plt.subplots(1, 2, figsize=(12,6))
+            axs[0].imshow(img.cpu().squeeze().numpy(), cmap='gist_gray')
+            axs[0].set_title('Original image')
+            axs[1].imshow(rec_img.cpu().squeeze().numpy(), cmap='gist_gray')
+            axs[1].set_title('Reconstructed image (EPOCH %d)' % (epoch_num + 1))
+            plt.tight_layout()
+            plt.pause(0.1)
+            # Save figures
+            #os.makedirs('autoencoder_progress_%d_features' % encoded_space_dim, exist_ok=True)
+            #fig.savefig('autoencoder_progress_%d_features/epoch_%d.jpg' % (encoded_space_dim, epoch_num + 1))
+            fig.canvas.draw()
+            #display.display(plt.show())
+            #display.clear_output(wait=True)
+
     return train_loss_log, val_loss_log
 
     
